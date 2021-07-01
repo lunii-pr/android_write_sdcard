@@ -1,151 +1,181 @@
 package fr.patrickrgn.android_write_sdcard
 
 import android.Manifest
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
-import android.os.Build
+import android.content.IntentFilter
+import android.hardware.usb.UsbManager
 import android.os.Bundle
-import android.os.Environment
-import android.os.storage.StorageManager
-import android.os.storage.StorageVolume
-import android.support.v4.app.ActivityCompat
-import android.support.v4.content.ContextCompat
-import android.support.v7.app.AppCompatActivity
-import android.util.Log
-import android.view.View
 import android.widget.Button
-import java.io.File
-import java.io.FileOutputStream
+import android.widget.EditText
+import androidx.appcompat.app.AppCompatActivity
+import com.github.mjdev.libaums.UsbMassStorageDevice
+import com.github.mjdev.libaums.fs.FileSystem
+import com.github.mjdev.libaums.fs.UsbFile
+import com.github.mjdev.libaums.fs.UsbFileStreamFactory
+import com.github.mjdev.libaums.partition.Partition
+import java.io.OutputStream
+import java.util.*
+
 
 class MainActivity : AppCompatActivity() {
+
+
+    private val actionUsbPermission = "fr.patrickrgn.android_write_sdcard.USB_PERMISSION"
+    var text: String = "Starting...\n"
+    lateinit var editText: EditText
+    private lateinit var mUsbManager: UsbManager
+    private lateinit var mPermissionIntent: PendingIntent
+
+    private fun fSize(sizeInByte: Long): String {
+        return when {
+            sizeInByte < 1024 -> String.format(
+                "%s",
+                sizeInByte
+            )
+            sizeInByte < 1024 * 1024 -> String.format(
+                Locale.FRANCE,
+                "%.2fKB",
+                sizeInByte / 1024.0
+            )
+            sizeInByte < 1024 * 1024 * 1024 -> String.format(
+                Locale.FRANCE,
+                "%.2fMB",
+                sizeInByte / 1024.0 / 1024
+            )
+            else -> String.format(Locale.FRANCE, "%.2fGB", sizeInByte / 1024.0 / 1024 / 1024)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val button: Button = findViewById<Button>(R.id.button)
-        button.setOnClickListener {
-            onButtonClick(it)
-        }
+        editText = findViewById(R.id.editTextTextMultiLine)
+        val checkPermissionButton: Button = findViewById(R.id.checkPermissionButton)
+        checkPermissionButton.setOnClickListener { checkPermissions() }
+
+        val writeFileButton: Button = findViewById(R.id.writeFileButton)
+        writeFileButton.setOnClickListener { writeFile() }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
+
+    fun writeText(value: String) {
+        text += "$value\n"
+        editText.setText(text)
     }
 
-    private fun onButtonClick(view: View) {
+    private val mUsbReceiver: BroadcastReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            writeText("onReceive: $intent")
+            val action: String? = intent?.action
+            if (action == null)
+                return
 
-        val permissionCheckWriteStorage: Int =
-            ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
-            )
-        if (permissionCheckWriteStorage != 0) {
-            requestPermission()
-        }
-
-
-        Log.d("AppLog", "SDK: ${Build.VERSION.SDK_INT}")
-        Log.d("AppLog", "extStorageState: ${Environment.getExternalStorageState()}")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            Log.d("AppLog", "isExternalStorageManager: ${Environment.isExternalStorageManager()}")
-        }
-        Log.d(
-            "AppLog",
-            "getExternalStorageDirectory: ${Environment.getExternalStorageDirectory().path}"
-        )
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            Log.d(
-                "AppLog",
-                "Environment.isExternalStorageLegacy(): ${Environment.isExternalStorageLegacy()}"
-            )
-        }
-
-
-
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val sm = this.getSystemService(STORAGE_SERVICE) as StorageManager
-            val storages: List<StorageVolume> = sm.storageVolumes
-            val sdcard: StorageVolume = storages.last()
-            Log.d("AppLog", sdcard.state)
-            val intent: Intent = sdcard.createOpenDocumentTreeIntent()
-            startActivityForResult(intent, 100)
-
-
-        }
-
-        Log.d("AppLog", "permissionCheckStorage: $permissionCheckWriteStorage")
-        Log.d("AppLog", "isExternalStorageAvailable: ${isExternalStorageAvailable()}")
-        Log.d("AppLog", "isExternalStorageReadOnly: ${isExternalStorageReadOnly()}")
-
-        val f = File(getExternalSdCard()?.absolutePath, "test.txt")
-//        val f = File("/storage/emulated/", "test.txt")
-        Log.d("AppLog", f.absolutePath)
-        val fos: FileOutputStream?
-        try {
-            fos = FileOutputStream(f)
-            fos.write("contenu du fichier".toByteArray())
-            fos.close()
-            Log.d("AppLog", "write file ok")
-        } catch (e: Exception) {
-            e.message?.let { Log.d("AppLog", it) }
-            Log.d("AppLog", "write file ko")
-        }
-    }
-
-    private fun requestPermission() {
-        ActivityCompat.requestPermissions(
-            this@MainActivity,
-            arrayOf(
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
-            ),
-            0
-        )
-    }
-
-    private fun listStorages(): List<StorageVolume> {
-        val sm = this.getSystemService(STORAGE_SERVICE) as StorageManager
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val i: List<StorageVolume> = sm.storageVolumes
-
-            i
-        } else {
-            ArrayList()
-        }
-    }
-
-    private fun getExternalSdCard(): File? {
-        var externalStorage: File? = null
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            val storage = File("/storage")
-            if (storage.exists()) {
-                val files = storage.listFiles()
-                for (file in files) {
-                    if (file.exists()) {
-                        try {
-                            if (Environment.isExternalStorageRemovable(file)) {
-                                externalStorage = file
-                                break
-                            }
-                        } catch (e: java.lang.Exception) {
-                            Log.e("TAG", e.toString())
+            when (action) {
+                actionUsbPermission ->//User Authorized Broadcast
+                    synchronized(this) {
+                        if (intent.getBooleanExtra(
+                                UsbManager.EXTRA_PERMISSION_GRANTED,
+                                false
+                            )
+                        ) { //Allow permission to apply
+//                            test();
+                        } else {
+                            writeText("User is not authorized, access to USB device failed")
                         }
                     }
-                }
+
+                UsbManager.ACTION_USB_DEVICE_ATTACHED -> //USB device plugged into the broadcast
+                    writeText("USB device plugin")
+
+                UsbManager.ACTION_USB_DEVICE_DETACHED ->//USB device unplugs the broadcast
+                    writeText("USB device unplugged")
             }
-        } else {
-            // do one of many old methods
-            // I believe Doomsknight's method is the best option here
+
         }
-        return externalStorage
     }
 
-    private fun isExternalStorageReadOnly(): Boolean {
-        val extStorageState = Environment.getExternalStorageState()
-        return Environment.MEDIA_MOUNTED_READ_ONLY == extStorageState
+
+    private fun checkPermissions() {
+
+        mUsbManager = getSystemService(Context.USB_SERVICE) as UsbManager
+        mPermissionIntent =
+            PendingIntent.getBroadcast(this, 0, Intent(actionUsbPermission), 0)
+
+        val intentFilter = IntentFilter()
+        intentFilter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
+        intentFilter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
+        intentFilter.addAction(actionUsbPermission)
+        registerReceiver(mUsbReceiver, intentFilter)
+
+
+        //Read and write permissions
+        requestPermissions(
+            arrayOf(
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                Manifest.permission.READ_EXTERNAL_STORAGE
+            ), 111
+        )
+
+        val storageDevices = UsbMassStorageDevice.getMassStorageDevices(this)
+
+        for (storageDevice in storageDevices) {
+            if (!mUsbManager.hasPermission(storageDevice.usbDevice)) {
+                mUsbManager.requestPermission(storageDevice.usbDevice, mPermissionIntent)
+            }
+        }
     }
 
-    private fun isExternalStorageAvailable(): Boolean {
-        val extStorageState = Environment.getExternalStorageState()
-        return Environment.MEDIA_MOUNTED == extStorageState
+
+    private fun writeFile() {
+        try {
+            val storageDevices = UsbMassStorageDevice.getMassStorageDevices(this)
+
+            for (storageDevice in storageDevices) {
+
+                storageDevice.init()
+
+                val partitions: List<Partition> = storageDevice.partitions
+                if (partitions.isEmpty()) {
+                    writeText("Error: Failed to read partition")
+                    return
+                }
+
+                val fileSystem: FileSystem = partitions[0].fileSystem
+                writeText("Volume Label: " + fileSystem.volumeLabel)
+                writeText("Capacity: " + fSize(fileSystem.capacity))
+                writeText("Occupied Space: " + fSize(fileSystem.occupiedSpace))
+                writeText("Free Space: " + fSize(fileSystem.freeSpace))
+                writeText("Chunk size: " + fSize(fileSystem.chunkSize.toLong()))
+
+                val root: UsbFile = fileSystem.rootDirectory
+                val files: Array<UsbFile> = root.listFiles()
+                files.forEach { file ->
+                    writeText("file: " + file.name)
+                }
+
+                // create a new file
+                val newFile: UsbFile =
+                    root.createFile("hello_" + System.currentTimeMillis() + ".txt")
+                writeText("New file: " + newFile.name)
+
+                // write the file
+                // OutputStream os = new UsbFileOutputStream(newFile);
+                val os: OutputStream =
+                    UsbFileStreamFactory.createBufferedOutputStream(newFile, fileSystem)
+                os.write(("hi_" + System.currentTimeMillis()).toByteArray())
+                os.close()
+                writeText("write file: " + newFile.name)
+
+
+            }
+
+        } catch (e: Exception) {
+            writeText("Error: $e")
+        }
     }
+
 }
