@@ -3,15 +3,39 @@ buildscript {
     ext.kotlin_version = "1.5.10"
     repositories {
         google()
+        maven { url "https://plugins.gradle.org/m2/" }
         mavenCentral()
     }
     dependencies {
         classpath "com.android.tools.build:gradle:4.2.1"
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-
+        classpath "org.jetbrains.dokka:dokka-gradle-plugin:1.4.20"
+        classpath "com.vanniktech:gradle-android-junit-jacoco-plugin:0.16.0"
+        classpath 'com.github.dcendents:android-maven-gradle-plugin:2.1'
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.4'
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
     }
+}
+
+ext {
+    bintrayRepo = 'maven'
+
+    publishedGroupId = 'me.jahnen'
+    libraryName = 'libaums'
+    libraryDescription = 'Android USB mass storage library with FAT32 support.'
+
+    siteUrl = 'https://github.com/magnusja/libaums'
+    gitUrl = 'https://github.com/magnusja/libaums.git'
+
+
+    developerId = 'magnusja'
+    developerName = 'Magnus Jahnen'
+    developerEmail = 'github@mgns.tech'
+
+    licenseName = 'The Apache Software License, Version 2.0'
+    licenseUrl = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+    allLicenses = ["Apache-2.0"]
 }
 
 allprojects {

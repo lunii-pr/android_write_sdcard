@@ -1,2 +1,4 @@
 rootProject.name = "android_write_sdcard"
 include ':app'
+include 'libaums'
+project(':libaums').projectDir = file('../libaums/libaums')
