@@ -152,10 +152,6 @@ class MainActivity : AppCompatActivity() {
                 writeText("Chunk size: " + fSize(fileSystem.chunkSize.toLong()))
 
                 val root: UsbFile = fileSystem.rootDirectory
-                val files: Array<UsbFile> = root.listFiles()
-                files.forEach { file ->
-                    writeText("file: " + file.name)
-                }
 
                 // create a new file
                 val newFile: UsbFile =
@@ -170,7 +166,7 @@ class MainActivity : AppCompatActivity() {
                 os.close()
                 writeText("write file: " + newFile.name)
 
-
+                storageDevice.close();
             }
 
         } catch (e: Exception) {
