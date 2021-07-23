@@ -24,8 +24,8 @@ class MainActivity : AppCompatActivity() {
 
 
     private val actionUsbPermission = "fr.patrickrgn.android_write_sdcard.USB_PERMISSION"
-    var text: String = "Starting...\n"
-    lateinit var editText: EditText
+    private var text: String = "Starting...\n"
+    private lateinit var editText: EditText
     private lateinit var mUsbManager: UsbManager
     private lateinit var mPermissionIntent: PendingIntent
 
@@ -70,9 +70,7 @@ class MainActivity : AppCompatActivity() {
     private val mUsbReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             writeText("onReceive: $intent")
-            val action: String? = intent?.action
-            if (action == null)
-                return
+            val action: String = intent?.action ?: return
 
             when (action) {
                 actionUsbPermission ->//User Authorized Broadcast
@@ -88,8 +86,11 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
 
-                UsbManager.ACTION_USB_DEVICE_ATTACHED -> //USB device plugged into the broadcast
-                    writeText("USB device plugin")
+                UsbManager.ACTION_USB_DEVICE_ATTACHED -> {
+                    text = "USB device plugin"
+                    editText.setText(text)
+                }
+
 
                 UsbManager.ACTION_USB_DEVICE_DETACHED ->//USB device unplugs the broadcast
                     writeText("USB device unplugged")
@@ -135,7 +136,7 @@ class MainActivity : AppCompatActivity() {
             val storageDevices = UsbMassStorageDevice.getMassStorageDevices(this)
 
             for (storageDevice in storageDevices) {
-
+                writeText("-------------")
                 storageDevice.init()
 
                 val partitions: List<Partition> = storageDevice.partitions
@@ -147,15 +148,7 @@ class MainActivity : AppCompatActivity() {
                 val fileSystem: FileSystem = partitions[0].fileSystem
                 writeText("Volume Label: " + fileSystem.volumeLabel)
                 writeText("Capacity: " + fSize(fileSystem.capacity))
-                writeText("Occupied Space: " + fSize(fileSystem.occupiedSpace))
-                writeText("Free Space: " + fSize(fileSystem.freeSpace))
-                writeText("Chunk size: " + fSize(fileSystem.chunkSize.toLong()))
-
                 val root: UsbFile = fileSystem.rootDirectory
-                val files: Array<UsbFile> = root.listFiles()
-                files.forEach { file ->
-                    writeText("file: " + file.name)
-                }
 
                 // create a new file
                 val newFile: UsbFile =
@@ -170,7 +163,7 @@ class MainActivity : AppCompatActivity() {
                 os.close()
                 writeText("write file: " + newFile.name)
 
-
+                storageDevice.close()
             }
 
         } catch (e: Exception) {
