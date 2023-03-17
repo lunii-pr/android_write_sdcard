@@ -1,0 +1,55 @@
+From 0fa3e2cf5644e6c99cfa8303fc6bed2afc6c1422 Mon Sep 17 00:00:00 2001
+From: Nicolas Haan <nicolash@bam.tech>
+Date: Fri, 16 Jul 2021 16:23:44 +0200
+Subject: [PATCH] Fix build
+
+---
+ app/build.gradle     | 1 -
+ libaums/build.gradle | 7 +------
+ 2 files changed, 1 insertion(+), 7 deletions(-)
+
+diff --git a/app/build.gradle b/app/build.gradle
+index 744f361..67ab252 100644
+--- a/app/build.gradle
++++ b/app/build.gradle
+@@ -34,5 +34,4 @@ dependencies {
+     api project(':httpserver')
+     api project(':storageprovider')
+     api project(':javafs')
+-    api project(':libusbcommunication')
+ }
+diff --git a/libaums/build.gradle b/libaums/build.gradle
+index 146d98f..98c947b 100644
+--- a/libaums/build.gradle
++++ b/libaums/build.gradle
+@@ -2,7 +2,6 @@ apply plugin: 'com.android.library'
+ apply plugin: 'kotlin-android'
+ apply plugin: 'kotlin-android-extensions'
+ apply plugin: 'org.jetbrains.dokka'
+-apply plugin: "com.vanniktech.android.junit.jacoco"
+ 
+ ext {
+     artifact = 'libaums'
+@@ -14,10 +13,6 @@ configurations {
+     javadocDeps
+ }
+ 
+-junitJacoco {
+-    jacocoVersion = "0.8.6"
+-}
+-
+ android {
+     compileSdkVersion 30
+     buildToolsVersion '30.0.3'
+@@ -59,7 +54,7 @@ android {
+             path "CMakeLists.txt"
+         }
+     }
+-    ndkVersion '22.0.70260617'
++    ndkVersion '22.0.7026061'
+ }
+ 
+ dependencies {
+-- 
+2.30.1
+

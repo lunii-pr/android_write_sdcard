@@ -38,6 +38,7 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.3.0'
     implementation 'com.github.patrickraguin.libaums:libaums:0.9.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
+    api project(':libaums')
     testImplementation 'junit:junit:4.+'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
 }
